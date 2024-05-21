@@ -1,3 +1,7 @@
+// jbautistas@unal.edu.co
+// Juan Sebastian Bautista Suarez
+// data taken from: https://mathworld.wolfram.com/600-Cell.html
+
 let angle = 0;
 
 let points = [];
@@ -7,8 +11,8 @@ function setup() {
   createCanvas(600, 400, WEBGL);
   let count = 0;
   const val = 0.5
-  const phi = (1 + sqrt(5)) / 2;
-  const invphi = 2 / (1 + sqrt(5));
+  const phi = (1 + sqrt(5)) / 4; // phi /2
+  const invphi = 1 / (1 + sqrt(5)); // phi**-1 / 2
 
   // permutations of (+-0.5, +-0.5, +- 0.5, +-0.5) (16 vertices)
   for (let x = -1; x <= 1; x += 2) {
@@ -32,51 +36,54 @@ function setup() {
     }
   }
 
-  // permutations of (+-phi, +- 1/phi, 0, 0) in pairs (96 vertices)
+  // even permutations of 1/2*(+-phi, +-1, +- 1/phi, 0) in pairs (96 vertices)
 
-  const options = [phi, -phi, invphi, -invphi];
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      for (let k = 0; k < 4; k++) {
-        for (let l = 0; l < 4; l++) {
-          if ( !(i + j + k + l) % 2 === 0) continue;
-          points[count] = [[options[i]], [options[j]], [options[k]], [options[l]]];
-          count++;
-        }
+  let permutations = generateSignedCombinations([phi, val, invphi, 0])
+  
+  // clean duplicates
+  let uniquePermutations = [];
+  for (let i = 0; i < permutations.length; i++) {
+    let isUnique = true;
+    for (let j = 0; j < uniquePermutations.length; j++) {
+      if (distance(permutations[i], uniquePermutations[j]) === 0) {
+        isUnique = false;
+        break;
       }
+    }
+    if (isUnique) {
+      uniquePermutations.push(permutations[i]);
     }
   }
 
 
-  let minDistance = 1000;
-  for (let i = 0; i < points.length; i++) {
-    for (let j = i + 1; j < points.length; j++) {
-      const d = distance(points[i], points[j]);
-      if (d < minDistance && d !== 0) {
-        minDistance = d;
-      }
+  // get even permutations
+  for (let i = 0; i < uniquePermutations.length; i++){
+    const temp = getEvenPermutations(uniquePermutations[i]);
+    for (let j = 0; j < temp.length; j++) {
+      points[count] = [[temp[j][0]], [temp[j][1]], [temp[j][2]], [temp[j][3]]];
+      count++;
     }
   }
-  console.log('minDistance: ', minDistance);
 
+  // connect points with distance 1
   for (let i = 0; i < points.length; i++) {
     for (let j = i + 1; j < points.length; j++) {
       const d = distance(points[i], points[j]);
-      if (d === minDistance && !conections.some(([a, b]) => (a === i && b === j) || (a === j && b === i))) {
+      if (d === (1) && !conections.some(([a, b]) => (a === i && b === j) || (a === j && b === i))) {
         conections.push([i, j]);
       }
     }
   }
 
-  //// points not connected
-  //let notConnected = [];
+  // points not connected
+  let notConnected = [];
 
-  //for (let i = 0; i < points.length; i++) {
-  //  if (!conections.some(([a, b]) => a === i || b === i)) {
-  //    notConnected.push(points[i]);
-  //  }
-  //}
-  //console.log('notConnected: ', notConnected);
+  for (let i = 0; i < points.length; i++) {
+    if (!conections.some(([a, b]) => a === i || b === i)) {
+      notConnected.push(points[i]);
+    }
+  }
+  console.log('notConnected: ', notConnected);
 }
 
 function draw() {
@@ -129,7 +136,7 @@ function draw() {
 
   for (let i = 0; i < projected.length; i++) {
     strokeWeight(10);
-    stroke(255, 220, 100);
+    stroke(10);
     const v = projected[i];
     point(v[0], v[1], v[2]);
   }
@@ -145,7 +152,7 @@ function connect(i, j, points) {
   const a = points[i];
   const b = points[j];
   strokeWeight(1);
-  stroke(255);
+  stroke(200);
   line(a[0], a[1], a[2], b[0], b[1], b[2]);
 }
 
@@ -184,4 +191,64 @@ function distance(a, b) {
     sum += (a[i] - b[i]) ** 2;
   }
   return round(sqrt(sum), 1);
+}
+
+// Función para generar todas las permutaciones de un array
+function permute(arr) {
+  let result = [];
+
+  if (arr.length === 0) return [[]];
+
+  for (let i = 0; i < arr.length; i++) {
+    const currentNum = arr[i];
+    const remainingNums = arr.slice(0, i).concat(arr.slice(i + 1));
+    const remainingNumsPermuted = permute(remainingNums);
+
+    for (let perm of remainingNumsPermuted) {
+      result.push([currentNum].concat(perm));
+    }
+  }
+
+  return result;
+}
+
+function countInversions(arr) {
+  let inversions = 0;
+  for (let i = 0; i < arr.length - 1; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      if (arr[i] > arr[j]) {
+        inversions++;
+      }
+    }
+  }
+  return inversions;
+}
+
+function isEvenPermutation(arr) {
+  return countInversions(arr) % 2 === 0;
+}
+
+function getEvenPermutations(elements) {
+  const allPermutations = permute(elements);
+  return allPermutations.filter(isEvenPermutation);
+}
+
+function generateSignedCombinations(elements) {
+  const signedCombinations = [];
+  const signs = [1, -1];
+
+  function generateCombinations(index, currentCombination) {
+    if (index === elements.length) {
+      signedCombinations.push(currentCombination.slice());
+      return;
+    }
+
+    for (let sign of signs) {
+      currentCombination[index] = elements[index] * sign;
+      generateCombinations(index + 1, currentCombination);
+    }
+  }
+
+  generateCombinations(0, new Array(elements.length));
+  return signedCombinations;
 }
