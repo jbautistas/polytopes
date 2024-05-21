@@ -7,8 +7,10 @@ function setup() {
   createCanvas(600, 400, WEBGL);
   let count = 0;
   const val = 0.5
+  const phi = (1 + sqrt(5)) / 2;
+  const invphi = 2 / (1 + sqrt(5));
 
-  // permutations of (+-0.5, +-0.5, +- 0.5, +-0.5)
+  // permutations of (+-0.5, +-0.5, +- 0.5, +-0.5) (16 vertices)
   for (let x = -1; x <= 1; x += 2) {
     for (let y = -1; y <= 1; y += 2) {
       for (let z = -1; z <= 1; z += 2) {
@@ -20,6 +22,32 @@ function setup() {
     }
   }
 
+  // permutations of (+-1, 0, 0, 0) in every position (8 vertices)
+  for (let i = 0; i < 4; i++) {
+    for (let j = -1; j <= 1; j+=2) {
+      const zeros = [[0], [0], [0], [0]];
+      zeros[i] = [j];
+      points[count] = zeros;
+      count++;
+    }
+  }
+
+  // permutations of (+-phi, +- 1/phi, 0, 0) in pairs (96 vertices)
+
+  const options = [phi, -phi, invphi, -invphi];
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      for (let k = 0; k < 4; k++) {
+        for (let l = 0; l < 4; l++) {
+          if ( !(i + j + k + l) % 2 === 0) continue;
+          points[count] = [[options[i]], [options[j]], [options[k]], [options[l]]];
+          count++;
+        }
+      }
+    }
+  }
+
+
   let minDistance = 1000;
   for (let i = 0; i < points.length; i++) {
     for (let j = i + 1; j < points.length; j++) {
@@ -29,6 +57,7 @@ function setup() {
       }
     }
   }
+  console.log('minDistance: ', minDistance);
 
   for (let i = 0; i < points.length; i++) {
     for (let j = i + 1; j < points.length; j++) {
@@ -38,8 +67,16 @@ function setup() {
       }
     }
   }
-  console.log(conections.length);
-  console.log(conections);
+
+  //// points not connected
+  //let notConnected = [];
+
+  //for (let i = 0; i < points.length; i++) {
+  //  if (!conections.some(([a, b]) => a === i || b === i)) {
+  //    notConnected.push(points[i]);
+  //  }
+  //}
+  //console.log('notConnected: ', notConnected);
 }
 
 function draw() {
@@ -91,8 +128,8 @@ function draw() {
   }
 
   for (let i = 0; i < projected.length; i++) {
-    strokeWeight(16);
-    stroke(255);
+    strokeWeight(10);
+    stroke(255, 220, 100);
     const v = projected[i];
     point(v[0], v[1], v[2]);
   }
@@ -146,5 +183,5 @@ function distance(a, b) {
   for (let i = 0; i < a.length; i++) {
     sum += (a[i] - b[i]) ** 2;
   }
-  return sqrt(sum);
+  return round(sqrt(sum), 1);
 }
